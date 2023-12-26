@@ -1,0 +1,8 @@
+# mac moment
+.DS_Store
+
+# binaries
+*.out
+
+# input files
+input*
