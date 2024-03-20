@@ -5,6 +5,8 @@
 
 typedef long long ll;
 
+#define MAX_SIZE 140
+
 enum direction {
     NORTH,
     SOUTH,
@@ -61,7 +63,7 @@ void change_by_direction(enum direction d, int* i, int* j) {
     }
 }
 
-int find_adj(int pipes[140][140], int rows, int columns, int i, int j) {
+int find_adj(int pipes[MAX_SIZE][MAX_SIZE], int rows, int columns, int i, int j) {
     if (i >= 1 && (pipes[i-1][j] == NORTH_SOUTH || pipes[i-1][j] == SOUTH_WEST || pipes[i-1][j] == SOUTH_EAST)) {
         return NORTH;
     } else if (i < rows - 1 && (pipes[i+1][j] == NORTH_SOUTH || pipes[i+1][j] == NORTH_WEST || pipes[i+1][j] == NORTH_EAST)) {
@@ -75,7 +77,7 @@ int find_adj(int pipes[140][140], int rows, int columns, int i, int j) {
     }
 }
 
-int adj_direction(int pipes[140][140], int rows, int columns, int i, int j, enum direction prev) {
+int adj_direction(int pipes[MAX_SIZE][MAX_SIZE], int rows, int columns, int i, int j, enum direction prev) {
     switch (pipes[i][j]) {
         case NORTH_SOUTH:
             return (prev == NORTH ? NORTH : SOUTH);
@@ -94,12 +96,68 @@ int adj_direction(int pipes[140][140], int rows, int columns, int i, int j, enum
     }
 }
 
+int lies_inside(int pipes[MAX_SIZE][MAX_SIZE], int visited[MAX_SIZE][MAX_SIZE], int rows, int columns, int i, int j) {
+    float coincide[4] = { 0.0 };
+    for (int x = 0; x < rows; x++) {
+        if (x == i) {
+            continue;
+        }
+        float y = 0;
+        if (!visited[x][j] || pipes[x][j] == NORTH_SOUTH) {
+            continue;
+        } else if (pipes[x][j] == EAST_WEST) {
+            y = 1;
+        } else {
+            y = 0.5;
+        }
+        coincide[x > i] += y;
+    }
+    for (int y = 0; y < columns; y++) {
+        if (y == j) {
+            continue;
+        }
+        float x = 0;
+        if (!visited[i][y] || pipes[i][y] == EAST_WEST) {
+            continue;
+        } else if (pipes[i][y] == NORTH_SOUTH) {
+            x = 1;
+        } else {
+            x = 0.5;
+        }
+        coincide[2 + (y > j)] += x;
+    }
+    printf("%f %f row collisions with (%d, %d)\n", coincide[0], coincide[1], i, j);
+    printf("%f %f column collisions with (%d, %d)\n", coincide[2], coincide[3], i, j);
+    for (int x = 0; x < 4; x++) {
+        coincide[x] = ((int)coincide[x]) % 2;
+        printf("%f ", coincide[x]);
+    }
+    printf("\n");
+    printf("%f %f row collisions with (%d, %d)\n", coincide[0], coincide[1], i, j);
+    printf("%f %f column collisions with (%d, %d)\n", coincide[2], coincide[3], i, j);
+    for (int x = 0; x < 4; x++) {
+        if (coincide[x] > 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void print_matrix(int a[MAX_SIZE][MAX_SIZE], int rows, int columns) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < columns; j++) {
+            printf("%d ", a[i][j]);
+        }
+        printf("\n");
+    }
+}
+
 int main() {
     char line[1024];
     FILE* input_file = fopen("input10", "r");
 
-    int pipes[140][140];
-    int visited[140][140];
+    int pipes[MAX_SIZE][MAX_SIZE];
+    int visited[MAX_SIZE][MAX_SIZE], inside[MAX_SIZE][MAX_SIZE];
     int rows = 0;
     int columns;
 
@@ -121,6 +179,7 @@ int main() {
                 start_column = j;
             }
             visited[i][j] = 0;
+            inside[i][j] = 0;
             // printf("%d ", pipes[i][j]);
         }
         // printf("\n");
@@ -147,22 +206,20 @@ int main() {
     ans = 0;
     for (int x = 1; x < rows - 1; x++) {
         for (int y = 1; y < columns - 1; y++) {
-            if (pipes[x][y] != GROUND) {
+            if (visited[x][y]) {
                 continue;
             }
-            int coincide = 0;
-            for (int k = x+1; k < rows; k++) {
-                if (visited[k][y] && pipes[k][y] == EAST_WEST) {
-                    coincide++;
-                }
-            }
-            if (coincide % 2) {
-                printf("%d %d\n", x, y);
+            int z = lies_inside(pipes, visited, rows, columns, x, y);
+            inside[x][y] = z;
+            if (z) {
+                // printf("%d %d\n", x, y);
                 ans++;
-                break;
             }
         }
     }
+    print_matrix(visited, rows, columns);
+    printf("\n");
+    print_matrix(inside, rows, columns);
 
     printf("%lld\n", ans);
     return 0;
